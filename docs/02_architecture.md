@@ -11,7 +11,8 @@ UML-диаграммы в нотации PlantUML лежат в [docs/uml](uml/)
 использования (`use_case.puml`), C4 (`c1_context`, `c2_containers`,
 `c3_components`), развёртывание (`deployment`), последовательность
 анализа (`sequence_analyze`), классы (`class_diagram`), деятельность
-ML-пайплайна (`ml_pipeline`), ER-диаграмма БД (`er_diagram`). Ниже —
+ML-пайплайна (`ml_pipeline`), ER-диаграмма БД (`er_diagram`); готовые
+изображения собраны на странице [docs/uml/README.md](uml/README.md). Ниже —
 упрощённые версии на Mermaid, которые GitHub показывает прямо в браузере.
 
 ### Контекст (C1)
