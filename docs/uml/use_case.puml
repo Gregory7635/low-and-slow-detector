@@ -1,0 +1,39 @@
+@startuml use_case
+title Диаграмма вариантов использования
+left to right direction
+skinparam packageStyle rectangle
+skinparam actorStyle awesome
+
+actor "Администратор сайта" as admin
+actor "Аналитик безопасности" as analyst
+actor "Внешняя система\n(фаервол, SIEM)" as ext
+actor "DNS-серверы" as dns <<система>>
+
+rectangle "Детектор low-and-slow ботов" {
+  usecase "Проанализировать журнал" as UC1
+  usecase "Просмотреть подозрительные IP\nи причины" as UC2
+  usecase "Выгрузить результат (JSON/TXT)" as UC3
+  usecase "Просмотреть историю анализов" as UC4
+  usecase "Обучить модели на своём трафике" as UC5
+  usecase "Оценить качество детектора" as UC6
+  usecase "Настроить пороги правил\nи белый список" as UC7
+  usecase "Проверить поисковых роботов\nпо DNS" as UC8
+  usecase "Внедрить синтетических ботов" as UC9
+}
+
+admin --> UC1
+admin --> UC2
+admin --> UC3
+admin --> UC4
+analyst --> UC5
+analyst --> UC6
+analyst --> UC7
+analyst --> UC1
+ext --> UC1
+ext --> UC3
+UC1 ..> UC8 : <<include>>
+UC6 ..> UC9 : <<include>>
+UC5 ..> UC9 : <<include>>
+UC2 ..> UC1 : <<extend>>
+UC8 --> dns
+@enduml

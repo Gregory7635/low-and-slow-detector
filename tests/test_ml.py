@@ -51,8 +51,11 @@ def test_dataset_split(dataset):
 
 
 def test_best_f1_threshold():
-    thr, f1 = best_f1_threshold(np.array([0, 0, 1, 1]), np.array([0.1, 0.2, 0.8, 0.9]))
-    assert f1 == 1.0 and 0.2 < thr <= 0.8
+    y, s = np.array([0, 0, 1, 1]), np.array([0.1, 0.2, 0.8, 0.9])
+    thr, f1 = best_f1_threshold(y, s)
+    assert f1 == 1.0 and 0.2 < thr < 0.8
+    # детектор использует "оценка > порога": граничный бот не должен выпасть
+    assert ((s > thr) == y.astype(bool)).all()
 
 
 def test_unknown_model():
@@ -63,6 +66,8 @@ def test_unknown_model():
 @pytest.mark.parametrize("name, params", [
     ("iforest", {"n_estimators": 50}),
     ("autoencoder", {"epochs": 40, "patience": 10}),
+    ("ocsvm", {}),
+    ("lof", {}),
 ])
 def test_train_save_load(dataset, tmp_path, name, params):
     ds, config = dataset

@@ -1,5 +1,6 @@
 """Подготовка выборок, обучение моделей и подбор порога."""
 
+import time
 from dataclasses import dataclass
 
 import numpy as np
@@ -69,11 +70,19 @@ def build_dataset(log, rule_results, bot_ips, config, val_size=0.2, test_size=0.
 
 
 def best_f1_threshold(y_true, scores):
-    """Порог, при котором F1 на выборке максимален."""
+    """Порог, при котором F1 на выборке максимален.
+
+    precision_recall_curve считает ботами IP с оценкой >= thr, а детектор -
+    с оценкой > порога. Поэтому порог ставится посередине между thr и
+    ближайшей меньшей оценкой: сам IP с оценкой thr остаётся ботом.
+    """
+    scores = np.asarray(scores, dtype=float)
     prec, rec, thr = precision_recall_curve(y_true, scores)
     f1 = 2 * prec * rec / np.maximum(prec + rec, 1e-12)
     i = int(np.nanargmax(f1[:-1]))   # последняя точка кривой без порога
-    return float(thr[i]), float(f1[i])
+    lower = scores[scores < thr[i]]
+    threshold = (thr[i] + lower.max()) / 2 if len(lower) else thr[i] - 1e-9
+    return float(threshold), float(f1[i])
 
 
 def train_detector(dataset, model_name, config, **model_params):
@@ -81,9 +90,11 @@ def train_detector(dataset, model_name, config, **model_params):
     model_params.setdefault("random_state", config.random_state)
     det = AnomalyDetector(create_model(model_name, **model_params), FEATURE_NAMES)
     normal = dataset.normal_train()
+    t0 = time.perf_counter()
     det.fit(normal)
+    fit_seconds = time.perf_counter() - t0
     val = dataset.part("val", clean_only=True)
     det.threshold, val_f1 = best_f1_threshold(val["label"], det.score(val))
     det.meta = {"val_f1": val_f1, "n_train": len(normal), "n_val": len(val),
-                "config": config.to_dict()}
+                "fit_seconds": round(fit_seconds, 2), "config": config.to_dict()}
     return det

@@ -226,7 +226,8 @@ def build_parser():
     t = sub.add_parser("train", help="обучить модели и оценить качество")
     t.add_argument("logfile")
     t.add_argument("--models", nargs="+", default=["iforest", "autoencoder"],
-                   choices=["iforest", "autoencoder"])
+                   choices=["iforest", "autoencoder", "ocsvm", "lof"],
+                   help="ocsvm и lof - для сравнения, detect по умолчанию их не загружает")
     t.add_argument("--models-dir", default=DEFAULT_MODELS_DIR)
     t.add_argument("--report-dir", default=os.path.join("output", "evaluation"))
     t.add_argument("--labels", metavar="CSV",

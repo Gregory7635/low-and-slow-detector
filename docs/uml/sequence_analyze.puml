@@ -1,0 +1,40 @@
+@startuml sequence_analyze
+title Диаграмма последовательности: анализ журнала через веб-интерфейс
+autonumber
+actor "Администратор" as user
+participant "Веб-страница" as web
+participant "REST API" as api
+participant "DetectionService" as svc
+participant "RuleEngine" as rules
+participant "DnsVerifier" as dns
+participant "features" as feat
+participant "AnomalyDetector" as model
+database "SQLite" as db
+
+user -> web : выбрать access.log,\nнажать «Анализировать»
+web -> api : POST /api/analyze (multipart)
+api -> api : валидация параметров (Pydantic)
+api -> api : parse_lines()
+alt в файле нет строк Apache
+  api --> web : 422
+end
+api -> svc : run(log)
+svc -> rules : run(log)
+rules -> dns : verify(заявленные боты)
+dns --> rules : verified / fake / unknown
+rules --> svc : срабатывания правил
+svc -> feat : extract_features(log)
+feat --> svc : DataFrame, 21 признак
+loop для каждой модели
+  svc -> model : score(), explain()
+  model --> svc : оценки, главные признаки
+end
+svc -> svc : решение: надёжное правило\nИЛИ оценка > порога
+svc --> api : DetectionReport
+api -> db : save(result)
+api --> web : AnalysisResponse (JSON)
+web -> web : сводка, графики, таблица
+web -> api : GET /api/analyses
+api -> db : list()
+api --> web : история
+@enduml

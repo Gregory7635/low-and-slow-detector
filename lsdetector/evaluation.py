@@ -26,8 +26,12 @@ METHOD_TITLES = {
     "rules": "Только правила",
     "iforest": "Isolation Forest",
     "autoencoder": "Автоэнкодер (нейросеть)",
+    "ocsvm": "One-Class SVM",
+    "lof": "Local Outlier Factor",
     "rules+iforest": "Правила + Isolation Forest",
     "rules+autoencoder": "Правила + автоэнкодер",
+    "rules+ocsvm": "Правила + One-Class SVM",
+    "rules+lof": "Правила + LOF",
 }
 
 
@@ -93,6 +97,17 @@ def evaluate(dataset, detectors, out_dir=None):
 # Графики
 # ---------------------------------------------------------------------------
 
+def _grid(n, max_cols, w, h):
+    """Сетка графиков: оси по порядку, лишние скрыты."""
+    cols = min(n, max_cols)
+    rows = -(-n // cols)
+    fig, axes = plt.subplots(rows, cols, figsize=(w * cols, h * rows), squeeze=False)
+    axes = axes.ravel()
+    for ax in axes[n:]:
+        ax.set_visible(False)
+    return fig, axes[:n]
+
+
 def _save(fig, out_dir, name):
     fig.tight_layout()
     fig.savefig(os.path.join(out_dir, name), dpi=130)
@@ -117,8 +132,8 @@ def plot_all(test, y, preds, scores, detectors, results, out_dir):
     _save(fig, out_dir, "roc_pr.png")
 
     # матрицы ошибок
-    fig, axes = plt.subplots(1, len(preds), figsize=(3.3 * len(preds), 3.4))
-    for ax, (name, pred) in zip(np.atleast_1d(axes), preds.items()):
+    fig, axes = _grid(len(preds), 5, 3.3, 3.4)
+    for ax, (name, pred) in zip(axes, preds.items()):
         cm = confusion_matrix(y, pred, labels=[0, 1])
         ax.imshow(cm, cmap="Blues")
         for (i, j), v in np.ndenumerate(cm):
@@ -131,8 +146,8 @@ def plot_all(test, y, preds, scores, detectors, results, out_dir):
     _save(fig, out_dir, "confusion_matrices.png")
 
     # распределение оценок
-    fig, axes = plt.subplots(1, len(scores), figsize=(5.5 * len(scores), 4))
-    for ax, (name, s) in zip(np.atleast_1d(axes), scores.items()):
+    fig, axes = _grid(len(scores), 2, 5.5, 4)
+    for ax, (name, s) in zip(axes, scores.items()):
         log_scale = name == "autoencoder"   # ошибка восстановления - на порядки
         bins = (np.geomspace(max(s.min(), 1e-6), s.max(), 50) if log_scale
                 else np.histogram_bin_edges(s, bins=50))
@@ -147,13 +162,13 @@ def plot_all(test, y, preds, scores, detectors, results, out_dir):
 
     # сравнение методов
     methods = list(results["methods"])
-    fig, ax = plt.subplots(figsize=(9, 4))
+    fig, ax = plt.subplots(figsize=(max(9, 1.2 * len(methods)), 4.5))
     width = 0.27
     for k, metric in enumerate(("precision", "recall", "f1")):
         vals = [results["methods"][m][metric] for m in methods]
         ax.bar(np.arange(len(methods)) + (k - 1) * width, vals, width, label=metric)
-    ax.set_xticks(range(len(methods)), [METHOD_TITLES[m] for m in methods], rotation=15,
-                  fontsize=8)
+    ax.set_xticks(range(len(methods)), [METHOD_TITLES[m] for m in methods], rotation=25,
+                  ha="right", fontsize=8)
     ax.set_ylim(0, 1.05)
     ax.set_title("Сравнение методов на тестовой выборке")
     ax.legend()
