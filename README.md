@@ -134,6 +134,8 @@ docs/         документация по этапам, UML-диаграммы
 4. [Тестирование и оценка качества](docs/04_testing.md),
    эксперименты — [docs/experiments](docs/experiments/experiments.md)
 
+Пояснительная записка: [docs/report](docs/report/) (Word и PDF).
+
 ## Тесты
 
 ```bash
