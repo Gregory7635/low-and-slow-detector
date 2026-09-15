@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+
+# IDE
+.idea/
+.vscode/
+
+# Исходные журналы с реальными IP-адресами не публикуются
+access.log
+*.log
+!data/sample/*.log
+
+# Артефакты прогонов
+output/
+artifacts/
+dns_cache.json
+*.joblib
+*.pt
+!models/pretrained/*
