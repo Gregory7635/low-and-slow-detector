@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Детектор low-and-slow ботов</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<header>
+  <h1>Детектор low-and-slow ботов</h1>
+  <span id="health" class="muted">проверка API…</span>
+</header>
+
+<main>
+  <section class="card">
+    <form id="form">
+      <label class="file">
+        <input type="file" id="file" name="file" required>
+        <span id="file-name">Выберите журнал Apache (combined)</span>
+      </label>
+      <label>Модель
+        <select id="decision_model">
+          <option value="autoencoder">Автоэнкодер (нейросеть)</option>
+          <option value="iforest">Isolation Forest</option>
+        </select>
+      </label>
+      <label><input type="checkbox" id="dns_offline"> без DNS-проверки</label>
+      <details>
+        <summary>Параметры правил</summary>
+        <label>Порог CV (правило 5) <input type="number" id="cv_threshold" value="0.15" step="0.01" min="0.01" max="0.99"></label>
+        <label>Окно подсети, с (правило 6) <input type="number" id="subnet_window" value="600" min="0"></label>
+        <label>IP в подсети (правило 6) <input type="number" id="subnet_threshold" value="5" min="2"></label>
+        <label>Мин. запросов для модели <input type="number" id="min_requests" value="5" min="3"></label>
+      </details>
+      <button type="submit" id="submit">Анализировать</button>
+    </form>
+    <div id="status" class="muted"></div>
+  </section>
+
+  <section id="results" hidden>
+    <div class="stats" id="stats"></div>
+
+    <div class="grid">
+      <div class="card">
+        <h2>Причины срабатывания</h2>
+        <div id="chart-reasons"></div>
+      </div>
+      <div class="card">
+        <h2>Оценки модели</h2>
+        <div id="chart-scores"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="toolbar">
+        <input type="search" id="filter-ip" placeholder="Поиск по IP">
+        <select id="filter-kind">
+          <option value="bots">Только боты</option>
+          <option value="all">Все IP</option>
+          <option value="model">Найдены только моделью</option>
+        </select>
+        <select id="filter-rule">
+          <option value="">Любое правило</option>
+          <option value="1">1 — поисковый бот без DNS</option>
+          <option value="2">2 — разные браузеры/ОС</option>
+          <option value="3">3 — невозможный UA</option>
+          <option value="5">5 — равномерные интервалы</option>
+          <option value="6">6 — подсеть в окне</option>
+        </select>
+        <a id="download" class="button" href="#">Скачать JSON</a>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+          <tr>
+            <th data-sort="ip">IP</th>
+            <th data-sort="requests">Запросов</th>
+            <th>Правила</th>
+            <th data-sort="ae">Автоэнкодер</th>
+            <th data-sort="if">Isolation Forest</th>
+            <th>Решение</th>
+            <th>Объяснение</th>
+          </tr>
+          </thead>
+          <tbody id="rows"></tbody>
+        </table>
+      </div>
+      <div id="table-info" class="muted"></div>
+    </div>
+  </section>
+</main>
+
+<script src="/static/app.js"></script>
+</body>
+</html>
