@@ -15,7 +15,7 @@ venv/
 # Исходные журналы с реальными IP-адресами не публикуются
 access.log
 *.log
-!data/sample/*.log
+!data/demo/*.log
 
 # Артефакты прогонов
 output/

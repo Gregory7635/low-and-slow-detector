@@ -18,10 +18,9 @@ def describe(v):
         elif r == 6:
             s += f" ({v.details['rule6_subnet']})"
         parts.append(s)
-    for name, flag in v.anomalous.items():
-        if flag:
-            parts.append(f"аномалия {name}={v.scores[name]:.3f} "
-                         f"[{', '.join(v.top_features)}]")
+    flagged = [f"{name}={v.scores[name]:.3f}" for name, flag in v.anomalous.items() if flag]
+    if flagged:
+        parts.append(f"аномалия {', '.join(flagged)} (признаки: {', '.join(v.top_features)})")
     return ", ".join(parts)
 
 

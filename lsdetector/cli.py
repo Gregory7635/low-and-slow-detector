@@ -3,7 +3,8 @@
   detect    - найти подозрительные IP (правила + обученные модели)
   train     - обучить модели на журнале с синтетическими ботами и оценить качество
   simulate  - записать журнал с внедрёнными ботами и их разметку
-  sample    - сделать небольшой обезличенный фрагмент журнала
+  demo      - сгенерировать синтетический демонстрационный журнал
+  sample    - сделать обезличенный фрагмент журнала (только для локальной работы)
 """
 
 import argparse
@@ -106,11 +107,17 @@ def cmd_train(args):
     config = config_from_args(args)
     verifier = DnsVerifier.from_file(args.dns_cache, offline=config.dns_offline)
     log = load_log(args.logfile)
-    sim = inject_bots(log, seed=args.seed)
-    print(f"[инфо] внедрено синтетических ботов: {len(sim.bot_ips)}", file=sys.stderr)
-    rules = RuleEngine(default_rules(verifier), config).run(sim.log)
+    if args.labels:   # разметка уже есть (например, у демонстрационного журнала)
+        with open(args.labels, encoding="utf-8") as f:
+            bot_ips = {row["ip"]: row["kind"] for row in csv.DictReader(f)}
+        print(f"[инфо] размеченных ботов: {len(bot_ips)}", file=sys.stderr)
+    else:
+        sim = inject_bots(log, seed=args.seed)
+        log, bot_ips = sim.log, sim.bot_ips
+        print(f"[инфо] внедрено синтетических ботов: {len(bot_ips)}", file=sys.stderr)
+    rules = RuleEngine(default_rules(verifier), config).run(log)
     verifier.save(args.dns_cache)
-    dataset = build_dataset(sim.log, rules, sim.bot_ips, config)
+    dataset = build_dataset(log, rules, bot_ips, config)
 
     os.makedirs(args.models_dir, exist_ok=True)
     detectors = {}
@@ -146,6 +153,25 @@ def cmd_simulate(args):
         w.writerow(["ip", "kind"])
         w.writerows(sorted(sim.bot_ips.items()))
     print(f"Записано {len(records)} строк, ботов: {len(sim.bot_ips)} -> {args.output}, {args.labels}")
+
+
+def cmd_demo(args):
+    from .demo import demo_log
+    from .simulate import format_record
+
+    sim = demo_log(seed=args.seed, humans=args.humans)
+    records = sorted((r for recs in sim.log.by_ip.values() for r in recs), key=lambda r: r.ts)
+    os.makedirs(os.path.dirname(args.output) or ".", exist_ok=True)
+    with open(args.output, "w", encoding="utf-8", newline="\n") as f:
+        for r in records:
+            f.write(format_record(r) + "\n")
+    labels = os.path.splitext(args.output)[0] + "_labels.csv"
+    with open(labels, "w", encoding="utf-8", newline="") as f:
+        w = csv.writer(f)
+        w.writerow(["ip", "kind"])
+        w.writerows(sorted(sim.bot_ips.items()))
+    print(f"Записано {len(records)} строк, IP: {len(sim.log.by_ip)}, "
+          f"low-and-slow ботов: {len(sim.bot_ips)} -> {args.output}, {labels}")
 
 
 def anonymize_ip(ip, salt):
@@ -201,6 +227,8 @@ def build_parser():
                    choices=["iforest", "autoencoder"])
     t.add_argument("--models-dir", default=DEFAULT_MODELS_DIR)
     t.add_argument("--report-dir", default=os.path.join("output", "evaluation"))
+    t.add_argument("--labels", metavar="CSV",
+                   help="готовая разметка ip,kind вместо внедрения синтетических ботов")
     t.add_argument("--seed", type=int, default=42)
     add_config_args(t)
     t.set_defaults(func=cmd_train)
@@ -212,9 +240,15 @@ def build_parser():
     s.add_argument("--seed", type=int, default=42)
     s.set_defaults(func=cmd_simulate)
 
-    a = sub.add_parser("sample", help="обезличенный фрагмент журнала")
+    m = sub.add_parser("demo", help="полностью синтетический демонстрационный журнал")
+    m.add_argument("-o", "--output", default="data/demo/demo_access.log")
+    m.add_argument("--humans", type=int, default=300)
+    m.add_argument("--seed", type=int, default=7)
+    m.set_defaults(func=cmd_demo)
+
+    a = sub.add_parser("sample", help="обезличенный фрагмент журнала (для локальной работы)")
     a.add_argument("logfile")
-    a.add_argument("-o", "--output", default="data/sample/access_sample.log")
+    a.add_argument("-o", "--output", default="output/access_sample.log")
     a.add_argument("--ips", type=int, default=400, help="сколько IP взять")
     a.add_argument("--seed", type=int, default=1)
     a.set_defaults(func=cmd_sample)

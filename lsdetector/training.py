@@ -36,6 +36,19 @@ class Dataset:
         return df[(df["label"] == 0) & (df["rule_flag"] == 0)]
 
 
+def _split(index, strata, labels, test_size, seed):
+    """train_test_split со стратификацией, устойчивый к маленьким группам.
+
+    Редкие группы (на маленьких журналах) объединяются по метке; если и
+    этого мало, разбиение делается без стратификации.
+    """
+    s = strata[index]
+    s = s.where(s.map(s.value_counts()) >= 5, labels[index].astype(str))
+    if s.value_counts().min() < 2:
+        s = None
+    return train_test_split(index, test_size=test_size, stratify=s, random_state=seed)
+
+
 def build_dataset(log, rule_results, bot_ips, config, val_size=0.2, test_size=0.2):
     feats = extract_features(log, config.min_requests)
     df = feats.copy()
@@ -45,12 +58,10 @@ def build_dataset(log, rule_results, bot_ips, config, val_size=0.2, test_size=0.
     df["rules"] = ["+".join(map(str, sorted(rule_results.rules_of(ip)))) for ip in df.index]
     # стратификация по типу: в каждой выборке есть все виды ботов
     strata = df["kind"] + "_" + df["rule_flag"].astype(str)
-    idx_train, idx_rest = train_test_split(
-        df.index, test_size=val_size + test_size, stratify=strata,
-        random_state=config.random_state)
-    idx_val, idx_test = train_test_split(
-        idx_rest, test_size=test_size / (val_size + test_size), stratify=strata[idx_rest],
-        random_state=config.random_state)
+    idx_train, idx_rest = _split(df.index, strata, df["label"], val_size + test_size,
+                                 config.random_state)
+    idx_val, idx_test = _split(idx_rest, strata, df["label"],
+                               test_size / (val_size + test_size), config.random_state)
     df["split"] = "train"
     df.loc[idx_val, "split"] = "val"
     df.loc[idx_test, "split"] = "test"
