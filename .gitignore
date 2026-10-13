@@ -24,3 +24,6 @@ dns_cache.json
 *.joblib
 *.pt
 !models/pretrained/*
+
+# Локальные настройки инструментов
+.claude/
