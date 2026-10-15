@@ -152,7 +152,8 @@ def cmd_simulate(args):
         w = csv.writer(f)
         w.writerow(["ip", "kind"])
         w.writerows(sorted(sim.bot_ips.items()))
-    print(f"Записано {len(records)} строк, ботов: {len(sim.bot_ips)} -> {args.output}, {args.labels}")
+    print(f"Записано {len(records)} строк, ботов: {len(sim.bot_ips)} "
+          f"-> {args.output}, {args.labels}")
 
 
 def cmd_demo(args):
@@ -214,7 +215,8 @@ def build_parser():
     d.add_argument("logfile")
     d.add_argument("-o", "--output", default="suspicious_ips.txt")
     d.add_argument("--json", metavar="FILE", help="подробный JSON-отчёт")
-    d.add_argument("--json-all", action="store_true", help="включить в JSON все IP, а не только ботов")
+    d.add_argument("--json-all", action="store_true",
+                   help="включить в JSON все IP, а не только ботов")
     d.add_argument("--models-dir", default=DEFAULT_MODELS_DIR)
     d.add_argument("--decision-model", choices=["autoencoder", "iforest"], default=None)
     d.add_argument("--no-ml", action="store_true", help="только правила")
