@@ -9,9 +9,16 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
 import numpy as np  # noqa: E402
 import pandas as pd  # noqa: E402
-from sklearn.metrics import (average_precision_score, confusion_matrix, f1_score,  # noqa: E402
-                             precision_recall_curve, precision_score, recall_score,
-                             roc_auc_score, roc_curve)
+from sklearn.metrics import (  # noqa: E402
+    average_precision_score,
+    confusion_matrix,
+    f1_score,
+    precision_recall_curve,
+    precision_score,
+    recall_score,
+    roc_auc_score,
+    roc_curve,
+)
 
 from .features import FEATURE_NAMES  # noqa: E402
 

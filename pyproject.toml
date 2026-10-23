@@ -1,0 +1,20 @@
+[project]
+name = "lsdetector"
+version = "0.1.0"
+description = "Детектор low-and-slow ботов по журналам Apache: правила + ML"
+requires-python = ">=3.10"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+filterwarnings = ["ignore::DeprecationWarning"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I"]
+ignore = ["E402"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["lsdetector", "api", "conftest"]

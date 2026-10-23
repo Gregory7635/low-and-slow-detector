@@ -20,8 +20,8 @@ import random
 import time
 from dataclasses import dataclass, field
 
-from .parser import LogRecord, ParsedLog
 from .features import is_static
+from .parser import LogRecord, ParsedLog
 from .useragent import analyze_ua
 
 BOT_NETWORK = ipaddress.ip_network("198.18.0.0/15")
@@ -175,6 +175,7 @@ def format_record(r):
     t = time.gmtime(r.ts + r.tz_offset)
     sign = "+" if r.tz_offset >= 0 else "-"
     off = abs(r.tz_offset)
-    stamp = time.strftime("%d/%b/%Y:%H:%M:%S", t) + f" {sign}{off // 3600:02d}{off % 3600 // 60:02d}"
+    zone = f"{sign}{off // 3600:02d}{off % 3600 // 60:02d}"
+    stamp = time.strftime("%d/%b/%Y:%H:%M:%S", t) + " " + zone
     return (f'{r.ip} - - [{stamp}] "{r.method} {r.path} HTTP/1.1" {r.status} {r.size} '
             f'"{r.referer}" "{r.ua}"')
