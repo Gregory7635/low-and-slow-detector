@@ -1,5 +1,6 @@
 """Подготовка выборок, обучение моделей и подбор порога."""
 
+import time
 from dataclasses import dataclass
 
 import numpy as np
@@ -81,9 +82,11 @@ def train_detector(dataset, model_name, config, **model_params):
     model_params.setdefault("random_state", config.random_state)
     det = AnomalyDetector(create_model(model_name, **model_params), FEATURE_NAMES)
     normal = dataset.normal_train()
+    t0 = time.perf_counter()
     det.fit(normal)
+    fit_seconds = time.perf_counter() - t0
     val = dataset.part("val", clean_only=True)
     det.threshold, val_f1 = best_f1_threshold(val["label"], det.score(val))
     det.meta = {"val_f1": val_f1, "n_train": len(normal), "n_val": len(val),
-                "config": config.to_dict()}
+                "fit_seconds": round(fit_seconds, 2), "config": config.to_dict()}
     return det
