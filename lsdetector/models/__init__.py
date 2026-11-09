@@ -6,13 +6,15 @@ from sklearn.preprocessing import StandardScaler
 
 from .autoencoder import AutoencoderModel
 from .base import AnomalyModel
+from .classic import LocalOutlierFactorModel, OneClassSVMModel
 from .iforest import IsolationForestModel
 
-MODEL_REGISTRY = {m.name: m for m in (IsolationForestModel, AutoencoderModel)}
+MODEL_REGISTRY = {m.name: m for m in (IsolationForestModel, AutoencoderModel,
+                                      OneClassSVMModel, LocalOutlierFactorModel)}
 
 
 def create_model(name, **params) -> AnomalyModel:
-    """Фабрика моделей по имени: 'iforest' или 'autoencoder'."""
+    """Фабрика моделей по имени: iforest, autoencoder, ocsvm, lof."""
     try:
         return MODEL_REGISTRY[name](**params)
     except KeyError:
@@ -82,4 +84,4 @@ class AnomalyDetector:
 
 
 __all__ = ["AnomalyDetector", "AnomalyModel", "AutoencoderModel", "IsolationForestModel",
-           "MODEL_REGISTRY", "create_model"]
+           "LocalOutlierFactorModel", "MODEL_REGISTRY", "OneClassSVMModel", "create_model"]
