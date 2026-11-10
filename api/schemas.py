@@ -44,6 +44,7 @@ class Summary(BaseModel):
 class AnalysisResponse(BaseModel):
     id: str
     filename: str
+    decision_model: str | None = None
     summary: Summary
     thresholds: dict[str, float]
     ips: list[IPResult]
@@ -61,3 +62,24 @@ class Health(BaseModel):
     status: str
     version: str
     models: list[str]
+
+
+class AnalysisShort(BaseModel):
+    id: str
+    filename: str
+    created_at: str
+    decision_model: str | None
+    lines: int
+    unique_ips: int
+    suspicious_ips: int
+
+
+class IPHistoryItem(BaseModel):
+    analysis_id: str
+    filename: str
+    created_at: str
+    requests: int
+    rules: list[int]
+    is_bot: bool
+    reason: str
+    description: str
