@@ -63,6 +63,8 @@ def test_unknown_model():
 @pytest.mark.parametrize("name, params", [
     ("iforest", {"n_estimators": 50}),
     ("autoencoder", {"epochs": 40, "patience": 10}),
+    ("ocsvm", {}),
+    ("lof", {}),
 ])
 def test_train_save_load(dataset, tmp_path, name, params):
     ds, config = dataset

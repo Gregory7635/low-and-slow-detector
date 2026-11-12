@@ -48,11 +48,12 @@ def test_cli_detect(tmp_path, demo_text, capsys):
 
 
 @pytest.fixture(scope="module")
-def client():
-    os.environ["LSD_MODELS_DIR"] = DEMO_MODELS
+def client(tmp_path_factory):
     import api.main as api_main
     api_main.MODELS_DIR = DEMO_MODELS
+    api_main.DB_PATH = str(tmp_path_factory.mktemp("db") / "test.sqlite3")
     api_main.get_detectors.cache_clear()
+    api_main.get_repository.cache_clear()
     return TestClient(api_main.app)
 
 
@@ -76,6 +77,22 @@ def test_api_analyze_flow(client, demo_text):
     assert len(got["ips"]) == len(bots)
     dl = client.get(f"/api/analyses/{data['id']}/download")
     assert "attachment" in dl.headers["content-disposition"]
+
+    # результат сохранён в БД целиком
+    full = client.get(f"/api/analyses/{data['id']}").json()
+    assert full["ips"] == data["ips"] and full["decision_model"] == "autoencoder"
+    history = client.get("/api/analyses").json()
+    assert history[0]["id"] == data["id"]
+    assert history[0]["suspicious_ips"] == data["summary"]["suspicious_ips"]
+
+    bot_ip = bots[0]["ip"]
+    items = client.get(f"/api/ips/{bot_ip}").json()
+    assert items[0]["analysis_id"] == data["id"] and items[0]["is_bot"]
+
+    assert client.delete(f"/api/analyses/{data['id']}").status_code == 204
+    assert client.get(f"/api/analyses/{data['id']}").status_code == 404
+    assert client.get(f"/api/ips/{bot_ip}").json() == []
+    assert client.delete(f"/api/analyses/{data['id']}").status_code == 404
 
 
 def test_api_errors(client):
