@@ -51,10 +51,46 @@ async function analyze(ev) {
     analysis = await r.json();
     $("status").textContent = "";
     render();
+    loadHistory();
   } catch (e) {
     $("status").textContent = "Ошибка: " + e.message;
   } finally {
     $("submit").disabled = false;
+  }
+}
+
+async function loadHistory() {
+  try {
+    const items = await fetch("/api/analyses?limit=20").then((r) => r.json());
+    $("history").innerHTML = items.length
+      ? items.map((a) => `<tr>
+          <td>${a.created_at.replace("T", " ").slice(0, 19)}</td>
+          <td>${escapeHtml(a.filename)}</td>
+          <td>${a.decision_model || "—"}</td>
+          <td class="num">${a.lines}</td>
+          <td class="num">${a.unique_ips}</td>
+          <td class="num">${a.suspicious_ips}</td>
+          <td><a href="#" data-open="${a.id}">открыть</a> · <a href="#" data-del="${a.id}">удалить</a></td>
+        </tr>`).join("")
+      : '<tr><td colspan="7" class="muted">Пока нет сохранённых анализов</td></tr>';
+  } catch (e) {
+    $("history").innerHTML = '<tr><td colspan="7" class="muted">История недоступна</td></tr>';
+  }
+}
+
+async function onHistoryClick(ev) {
+  const open = ev.target.dataset.open, del = ev.target.dataset.del;
+  if (!open && !del) return;
+  ev.preventDefault();
+  if (open) {
+    analysis = await fetch(`/api/analyses/${open}`).then((r) => r.json());
+    if (analysis.decision_model) $("decision_model").value = analysis.decision_model;
+    render();
+    $("results").scrollIntoView({ behavior: "smooth" });
+  } else if (confirm("Удалить анализ из истории?")) {
+    await fetch(`/api/analyses/${del}`, { method: "DELETE" });
+    if (analysis && analysis.id === del) $("results").hidden = true;
+    loadHistory();
   }
 }
 
@@ -202,6 +238,7 @@ $("file").addEventListener("change", () => {
 });
 ["filter-ip", "filter-kind", "filter-rule"].forEach((id) => $(id).addEventListener("input", renderTable));
 $("decision_model").addEventListener("change", () => analysis && renderScores());
+$("history").addEventListener("click", onHistoryClick);
 document.querySelectorAll("th[data-sort]").forEach((th) =>
   th.addEventListener("click", () => {
     const key = th.dataset.sort;
@@ -211,3 +248,4 @@ document.querySelectorAll("th[data-sort]").forEach((th) =>
   })
 );
 checkHealth();
+loadHistory();

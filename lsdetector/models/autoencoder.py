@@ -17,7 +17,7 @@ from .base import AnomalyModel
 
 
 class _AutoencoderNet(nn.Module):
-    def __init__(self, n_features, hidden=(32, 16), latent=6, dropout=0.1):
+    def __init__(self, n_features, hidden=(16, 8), latent=3, dropout=0.0):
         super().__init__()
         enc, prev = [], n_features
         for h in hidden:
@@ -39,7 +39,8 @@ class _AutoencoderNet(nn.Module):
 class AutoencoderModel(AnomalyModel):
     name = "autoencoder"
 
-    def __init__(self, hidden=(32, 16), latent=6, dropout=0.1, lr=1e-3,
+    # Архитектура выбрана по F1 на validation (scripts/experiments.py)
+    def __init__(self, hidden=(16, 8), latent=3, dropout=0.0, lr=1e-3,
                  weight_decay=1e-5, epochs=300, batch_size=128, patience=25,
                  random_state=42, device=None):
         self.params = dict(hidden=tuple(hidden), latent=latent, dropout=dropout, lr=lr,
