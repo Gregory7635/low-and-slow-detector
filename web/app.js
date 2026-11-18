@@ -50,6 +50,7 @@ async function analyze(ev) {
     }
     analysis = await r.json();
     $("status").textContent = "";
+    history.replaceState(null, "", `#id=${analysis.id}`);
     render();
     loadHistory();
   } catch (e) {
@@ -78,15 +79,22 @@ async function loadHistory() {
   }
 }
 
+async function openAnalysis(id) {
+  const r = await fetch(`/api/analyses/${id}`);
+  if (!r.ok) return false;
+  analysis = await r.json();
+  if (analysis.decision_model) $("decision_model").value = analysis.decision_model;
+  history.replaceState(null, "", `#id=${id}`);   // ссылку на результат можно переслать
+  render();
+  return true;
+}
+
 async function onHistoryClick(ev) {
   const open = ev.target.dataset.open, del = ev.target.dataset.del;
   if (!open && !del) return;
   ev.preventDefault();
   if (open) {
-    analysis = await fetch(`/api/analyses/${open}`).then((r) => r.json());
-    if (analysis.decision_model) $("decision_model").value = analysis.decision_model;
-    render();
-    $("results").scrollIntoView({ behavior: "smooth" });
+    if (await openAnalysis(open)) $("results").scrollIntoView({ behavior: "smooth" });
   } else if (confirm("Удалить анализ из истории?")) {
     await fetch(`/api/analyses/${del}`, { method: "DELETE" });
     if (analysis && analysis.id === del) $("results").hidden = true;
@@ -162,7 +170,8 @@ function renderScores() {
     return `<rect class="${cls}" x="${pad + i * bw}" y="${H - pad - h}" width="${bw - 1}" height="${h}"></rect>`;
   });
   const xt = pad + ((lthr - lo) / (hi - lo || 1)) * (W - pad);
-  const above = scores.filter((v) => v > thr).length;
+  // по флагу из API: оценки в ответе округлены, сравнение с порогом могло бы врать
+  const above = analysis.ips.filter((i) => i.anomalous[model]).length;
   $("chart-scores").innerHTML = `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img">
       ${rects.join("")}
       <line class="thr" x1="${xt}" x2="${xt}" y1="0" y2="${H - pad}"></line>
@@ -249,3 +258,5 @@ document.querySelectorAll("th[data-sort]").forEach((th) =>
 );
 checkHealth();
 loadHistory();
+const linked = location.hash.match(/^#id=(\w+)$/);
+if (linked) openAnalysis(linked[1]);
