@@ -26,8 +26,12 @@ class AnalysisRepository:
         self._lock = threading.Lock()
         # check_same_thread=False: FastAPI выполняет обработчики в пуле потоков,
         # доступ к соединению сериализуется блокировкой
-        self._conn = sqlite3.connect(path, check_same_thread=False)
+        # timeout - ждать освобождения БД, если пишет другой процесс (uvicorn --workers)
+        self._conn = sqlite3.connect(path, check_same_thread=False, timeout=30)
         self._conn.row_factory = sqlite3.Row
+        if path != ":memory:":
+            # WAL: читатели не блокируют писателя, запись из разных процессов по очереди
+            self._conn.execute("PRAGMA journal_mode = WAL")
         with open(SCHEMA, encoding="utf-8") as f:
             self._conn.executescript(f.read())
 
