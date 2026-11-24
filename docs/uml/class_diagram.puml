@@ -1,0 +1,110 @@
+@startuml class_diagram
+title Диаграмма классов (основные)
+skinparam classAttributeIconSize 0
+hide empty members
+
+package rules {
+  abstract class Rule {
+    +id: int
+    +name: str
+    +prepare(ctx)
+    +{abstract} check(ip, records, ctx): dict
+  }
+  class FakeSearchBotRule
+  class MixedBrowsersRule
+  class ImpossibleUARule
+  class RegularIntervalsRule
+  class SubnetBurstRule
+  class RuleEngine {
+    +run(log): RuleResults
+  }
+  class RuleContext
+  class RuleResults {
+    +hits: dict
+    +verified: set
+    +rules_of(ip): set
+  }
+  Rule <|-- FakeSearchBotRule
+  Rule <|-- MixedBrowsersRule
+  Rule <|-- ImpossibleUARule
+  Rule <|-- RegularIntervalsRule
+  Rule <|-- SubnetBurstRule
+  RuleEngine o-- "1..*" Rule
+  RuleEngine ..> RuleContext
+  RuleEngine ..> RuleResults
+}
+
+class DnsVerifier {
+  +cache: dict
+  +verify(bots_by_ip): dict
+  +verify_one(ip, bots): dict
+}
+FakeSearchBotRule --> DnsVerifier
+
+package models {
+  abstract class AnomalyModel {
+    +{abstract} fit(X, X_val)
+    +{abstract} score(X): ndarray
+    +feature_contributions(X): ndarray
+    +{abstract} get_state(): dict
+    +{abstract} from_state(state)
+  }
+  class IsolationForestModel
+  class AutoencoderModel {
+    +reconstruction_errors(X)
+  }
+  class OneClassSVMModel
+  class LocalOutlierFactorModel
+  class AnomalyDetector {
+    +threshold: float
+    +feature_names: list
+    +fit(df_train, df_val)
+    +score(df)
+    +predict(df)
+    +explain(df, top)
+    +save(path)
+    +{static} load(path)
+  }
+  AnomalyModel <|-- IsolationForestModel
+  AnomalyModel <|-- AutoencoderModel
+  AnomalyModel <|-- OneClassSVMModel
+  AnomalyModel <|-- LocalOutlierFactorModel
+  AnomalyDetector *-- AnomalyModel
+}
+note bottom of AnomalyDetector : create_model(name) - фабрика\nпо MODEL_REGISTRY
+
+class DetectionService {
+  +config: DetectorConfig
+  +decision_model: str
+  +run(log): DetectionReport
+}
+class DetectionReport {
+  +verdicts: dict
+  +bots(): list
+  +summary(): dict
+}
+class IPVerdict
+class DetectorConfig
+class ParsedLog {
+  +by_ip: dict
+  +stats: Counter
+}
+class LogRecord <<NamedTuple>>
+
+DetectionService --> RuleEngine
+DetectionService --> "0..*" AnomalyDetector
+DetectionService --> DnsVerifier
+DetectionService ..> ParsedLog
+DetectionService ..> DetectionReport
+DetectionReport *-- "*" IPVerdict
+ParsedLog *-- "*" LogRecord
+DetectionService --> DetectorConfig
+
+class AnalysisRepository {
+  +save(result, params)
+  +get(id, only_bots)
+  +list(limit)
+  +ip_history(ip)
+  +delete(id)
+}
+@enduml

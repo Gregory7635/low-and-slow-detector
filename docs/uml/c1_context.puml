@@ -1,0 +1,18 @@
+@startuml c1_context
+!include <C4/C4_Context>
+title C1. Диаграмма контекста
+LAYOUT_LEFT_RIGHT()
+
+Person(admin, "Администратор сайта", "Ищет и блокирует ботов")
+Person(analyst, "Аналитик безопасности", "Обучает модели, настраивает пороги")
+System(detector, "Детектор low-and-slow ботов", "Находит медленных ботов в журналах Apache: правила + ML")
+System_Ext(apache, "Веб-сервер Apache", "Пишет журнал access.log (combined)")
+System_Ext(dns, "DNS", "PTR и A/AAAA записи для проверки поисковиков")
+System_Ext(fw, "Фаервол / SIEM", "Получает список IP для блокировки")
+
+Rel(apache, detector, "access.log", "файл")
+Rel(admin, detector, "Загружает журнал, смотрит результат", "браузер / CLI")
+Rel(analyst, detector, "Обучение и оценка", "CLI")
+Rel(detector, dns, "reverse + forward запросы", "DNS")
+Rel(fw, detector, "Запрашивает результат", "REST/JSON")
+@enduml

@@ -1,0 +1,24 @@
+@startuml ml_pipeline
+title Диаграмма деятельности: ML-пайплайн (команда train)
+start
+:Загрузить журнал Apache\n(parser.load_log);
+if (Передана разметка --labels?) then (да)
+  :Прочитать CSV ip,kind;
+else (нет)
+  :Внедрить синтетических ботов\n(timer, random_slow, distributed, mimic);
+endif
+:Применить правила 1-6\n(RuleEngine, кэш DNS);
+:Извлечь 21 признак для IP\nс >= 5 запросами;
+:Разбить IP на train / val / test\n(60/20/20, стратификация по типу);
+:Выбрать «чистые» train-IP:\nреальные, без срабатываний правил;
+fork
+  :StandardScaler + Isolation Forest;
+fork again
+  :StandardScaler + автоэнкодер\n(PyTorch, ранняя остановка);
+end fork
+:Подобрать порог по максимуму F1\nна validation;
+:Сохранить модели (joblib);
+:Оценить на test: Precision, Recall, F1,\nROC-AUC, матрицы ошибок, графики;
+:Сохранить errors.csv для разбора ошибок;
+stop
+@enduml
