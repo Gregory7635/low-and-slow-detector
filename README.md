@@ -8,19 +8,21 @@
 
 - **правила** — проверка поисковых роботов по DNS, невозможные User-Agent,
   слишком равномерные интервалы, всплески IP одной подсети;
-- **машинное обучение** — нейросетевой автоэнкодер (PyTorch) и Isolation
-  Forest (scikit-learn) оценивают, насколько поведение IP отличается от
-  обычных посетителей, и объясняют, какими признаками.
+- **машинное обучение** — нейросетевой автоэнкодер (PyTorch) оценивает,
+  насколько поведение IP отличается от обычных посетителей, и объясняет,
+  какими признаками. Для сравнения реализованы Isolation Forest,
+  One-Class SVM и Local Outlier Factor (scikit-learn).
 
 | Метод (тестовая выборка) | Precision | Recall | F1 |
 |---|---|---|---|
 | Только правила | 1.000 | 0.529 | 0.692 |
-| Автоэнкодер | 0.933 | 0.942 | 0.938 |
-| **Правила + автоэнкодер** | **0.935** | **0.971** | **0.953** |
+| Isolation Forest | 0.866 | 0.990 | 0.924 |
+| **Правила + автоэнкодер** | **0.929** | **1.000** | **0.963** |
 
-Подробности — в [docs/04_testing.md](docs/04_testing.md).
+На пяти вариантах данных средний F1 автоэнкодера 0.919 ± 0.017 — лучший
+из четырёх моделей. Подробности — в [docs/04_testing.md](docs/04_testing.md).
 
-![Матрицы ошибок](docs/images/confusion_matrices.png)
+![Веб-интерфейс](docs/images/ui_results.png)
 
 ## Установка
 
@@ -46,8 +48,8 @@ python -m lsdetector detect data/demo/demo_access.log --dns-offline --models-dir
 ```
 Строк: 20773, разобрано: 20773, уникальных IP: 374
 Модели: iforest, autoencoder
-Подозрительных IP: 64
-  model:autoencoder  аномальное поведение (модель)                  32
+Подозрительных IP: 71
+  model:autoencoder  аномальное поведение (модель)                  39
   rule6              много IP одной подсети в коротком окне         23
   rule5              аномально равномерные интервалы                 9
 ```
@@ -65,6 +67,7 @@ python -m lsdetector detect access.log -o suspicious_ips.txt --json report.json
 `train` внедряет в журнал синтетических ботов (`lsdetector/simulate.py`),
 обучает модели на обычных посетителях, подбирает порог и сохраняет модели
 в `models/pretrained/`, а метрики и графики — в `output/evaluation/`.
+`--models iforest autoencoder ocsvm lof` обучает и сравнивает все четыре.
 
 Основные параметры `detect`:
 
@@ -89,11 +92,16 @@ uvicorn api.main:app --port 8000
 ```
 
 - страница: http://127.0.0.1:8000/ — загрузка журнала, сводка, графики,
-  таблица IP с фильтрами, выгрузка JSON;
+  таблица IP с фильтрами, выгрузка JSON, история анализов;
 - Swagger: http://127.0.0.1:8000/docs.
 
-Для демо-журнала запускайте с демо-моделями: переменная окружения
-`LSD_MODELS_DIR=models/demo`.
+| Переменная окружения | По умолчанию | Назначение |
+|---|---|---|
+| `LSD_MODELS_DIR` | `models/pretrained` | модели; для демо-журнала — `models/demo` |
+| `LSD_DB` | `output/lsdetector.sqlite3` | база истории анализов (SQLite) |
+| `LSD_DNS_CACHE` | `dns_cache.json` | кэш DNS |
+
+Для нескольких процессов: `uvicorn api.main:app --workers 4`.
 
 ## Правила
 
@@ -109,24 +117,33 @@ uvicorn api.main:app --port 8000
 
 ```
 lsdetector/   ядро: разбор, правила, признаки, модели, оценка, CLI
-api/          REST API (FastAPI)
+api/          REST API (FastAPI) и хранилище SQLite
 web/          веб-страница
 models/       обученные модели
 data/demo/    синтетический журнал с разметкой
+scripts/      эксперименты с моделями, нагрузочный тест
 tests/        тесты (pytest)
-docs/         документация по этапам курсового проекта
+docs/         документация по этапам, UML-диаграммы, результаты
 ```
 
 ## Документация
 
 1. [Анализ предметной области и требования](docs/01_requirements.md)
-2. [Проектирование](docs/02_architecture.md)
+2. [Проектирование](docs/02_architecture.md), UML-диаграммы — [docs/uml](docs/uml)
 3. [Реализация](docs/03_implementation.md)
-4. [Тестирование и оценка качества](docs/04_testing.md)
+4. [Тестирование и оценка качества](docs/04_testing.md),
+   эксперименты — [docs/experiments](docs/experiments/experiments.md)
 
 ## Тесты
 
 ```bash
 pip install -r requirements-dev.txt
 pytest -q
+```
+
+Эксперименты и нагрузочный тест (нужен свой журнал и запущенный API):
+
+```bash
+python scripts/experiments.py access.log
+python scripts/load_test.py data/demo/demo_access.log
 ```
