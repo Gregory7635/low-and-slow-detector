@@ -1,0 +1,36 @@
+@startuml er_diagram
+title ER-диаграмма базы данных истории анализов
+hide circle
+skinparam linetype ortho
+
+entity "analyses" as a {
+  * id : TEXT <<PK>>
+  --
+  * filename : TEXT
+  * created_at : TEXT
+  decision_model : TEXT
+  * lines : INTEGER
+  * unique_ips : INTEGER
+  * suspicious_ips : INTEGER
+  * params_json : TEXT
+  * summary_json : TEXT
+  * thresholds_json : TEXT
+}
+
+entity "ip_results" as r {
+  * analysis_id : TEXT <<PK, FK>>
+  * ip : TEXT <<PK>>
+  --
+  * requests : INTEGER
+  * rules : TEXT
+  * is_bot : INTEGER
+  * reason : TEXT
+  * scores_json : TEXT
+  * anomalous_json : TEXT
+  * top_features : TEXT
+  * description : TEXT
+  * details_json : TEXT
+}
+
+a ||--o{ r : "содержит\n(ON DELETE CASCADE)"
+@enduml

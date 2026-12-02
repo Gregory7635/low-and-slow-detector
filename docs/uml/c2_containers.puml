@@ -1,0 +1,29 @@
+@startuml c2_containers
+!include <C4/C4_Container>
+title C2. Диаграмма контейнеров
+LAYOUT_LEFT_RIGHT()
+
+Person(admin, "Администратор")
+Person(analyst, "Аналитик")
+System_Ext(dns, "DNS")
+System_Ext(fw, "Фаервол / SIEM")
+
+System_Boundary(sys, "Детектор low-and-slow ботов") {
+  Container(web, "Веб-страница", "HTML, JavaScript", "Загрузка журнала, графики, таблица IP, история")
+  Container(api, "REST API", "Python, FastAPI, Pydantic", "Приём журнала, запуск анализа, выдача результатов")
+  Container(cli, "CLI", "Python, argparse", "detect / train / simulate / demo")
+  Container(core, "Ядро lsdetector", "Python, pandas, scikit-learn, PyTorch", "Разбор, правила, признаки, модели, оценка")
+  ContainerDb(db, "История анализов", "SQLite", "analyses, ip_results")
+  ContainerDb(files, "Файлы", "joblib, JSON", "Обученные модели, кэш DNS, отчёты")
+}
+
+Rel(admin, web, "Использует", "HTTP")
+Rel(web, api, "fetch /api/*", "JSON")
+Rel(fw, api, "GET /api/analyses/{id}", "JSON")
+Rel(analyst, cli, "Запускает")
+Rel(api, core, "DetectionService.run()")
+Rel(cli, core, "Вызывает")
+Rel(api, db, "Чтение/запись", "sqlite3")
+Rel(core, files, "Загрузка моделей, кэш DNS")
+Rel(core, dns, "PTR, A/AAAA")
+@enduml

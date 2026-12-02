@@ -67,12 +67,18 @@ def analyze_text(text, filename, params: AnalyzeParams, detectors):
     log = parse_lines(text.splitlines())
     if not log.by_ip:
         raise HTTPException(422, "в файле нет строк в формате Apache combined")
-    with _dns_lock:   # кэш DNS общий для всех запросов
+    # файл кэша DNS общий для всех запросов: блокировка только на чтение и
+    # запись, сам анализ запросы выполняют параллельно
+    with _dns_lock:
         verifier = DnsVerifier.from_file(DNS_CACHE, offline=params.dns_offline)
-        service = DetectionService(config, verifier, detectors, params.decision_model)
-        report = service.run(log)
-        if not params.dns_offline:
-            verifier.save(DNS_CACHE)
+    service = DetectionService(config, verifier, detectors, params.decision_model)
+    report = service.run(log)
+    if not params.dns_offline:
+        with _dns_lock:
+            # дописать свои результаты к тому, что успели сохранить другие запросы
+            merged = DnsVerifier.from_file(DNS_CACHE)
+            merged.cache.update(verifier.cache)
+            merged.save(DNS_CACHE)
     ips = [IPResult(**v.to_dict(), description=describe(v))
            for v in sorted(report.verdicts.values(), key=lambda v: v.ip)]
     return AnalysisResponse(id=uuid.uuid4().hex[:12], filename=filename,

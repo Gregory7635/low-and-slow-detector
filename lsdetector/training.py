@@ -70,11 +70,19 @@ def build_dataset(log, rule_results, bot_ips, config, val_size=0.2, test_size=0.
 
 
 def best_f1_threshold(y_true, scores):
-    """Порог, при котором F1 на выборке максимален."""
+    """Порог, при котором F1 на выборке максимален.
+
+    precision_recall_curve считает ботами IP с оценкой >= thr, а детектор -
+    с оценкой > порога. Поэтому порог ставится посередине между thr и
+    ближайшей меньшей оценкой: сам IP с оценкой thr остаётся ботом.
+    """
+    scores = np.asarray(scores, dtype=float)
     prec, rec, thr = precision_recall_curve(y_true, scores)
     f1 = 2 * prec * rec / np.maximum(prec + rec, 1e-12)
     i = int(np.nanargmax(f1[:-1]))   # последняя точка кривой без порога
-    return float(thr[i]), float(f1[i])
+    lower = scores[scores < thr[i]]
+    threshold = (thr[i] + lower.max()) / 2 if len(lower) else thr[i] - 1e-9
+    return float(threshold), float(f1[i])
 
 
 def train_detector(dataset, model_name, config, **model_params):

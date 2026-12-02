@@ -1,0 +1,35 @@
+@startuml c3_components
+!include <C4/C4_Component>
+title C3. Компоненты ядра lsdetector
+
+Container_Ext(api, "REST API / CLI")
+ContainerDb_Ext(files, "Модели и кэш DNS")
+System_Ext(dns, "DNS")
+
+Container_Boundary(core, "lsdetector") {
+  Component(parser, "parser", "модуль", "Разбор строк combined в LogRecord")
+  Component(ua, "useragent", "модуль", "Браузер, ОС, поисковый бот, проверки 3a-3m")
+  Component(dnsv, "DnsVerifier", "класс", "reverse + forward DNS с кэшем")
+  Component(rules, "RuleEngine + Rule", "стратегии", "Правила 1, 2, 3, 5, 6")
+  Component(feat, "features", "модуль", "21 поведенческий признак по IP")
+  Component(models, "AnomalyDetector", "класс", "Scaler + модель + порог")
+  Component(svc, "DetectionService", "фасад", "Итоговое решение и объяснение")
+  Component(report, "report", "модуль", "TXT / JSON")
+  Component(sim, "simulate", "модуль", "Синтетические low-and-slow боты")
+  Component(train, "training + evaluation", "модули", "Выборки, обучение, порог, метрики")
+}
+
+Rel(api, parser, "load_log / parse_lines")
+Rel(api, svc, "run(log)")
+Rel(api, report, "write_txt / write_json")
+Rel(svc, rules, "run")
+Rel(svc, feat, "extract_features")
+Rel(svc, models, "score / explain")
+Rel(rules, ua, "analyze_ua")
+Rel(rules, dnsv, "verify")
+Rel(dnsv, dns, "запросы")
+Rel(models, files, "load / save")
+Rel(train, sim, "inject_bots")
+Rel(train, models, "fit, порог")
+Rel(train, rules, "разметка")
+@enduml

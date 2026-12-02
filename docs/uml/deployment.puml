@@ -1,0 +1,33 @@
+@startuml deployment
+title Диаграмма развёртывания
+
+node "Сервер сайта (Linux)" as websrv {
+  component "Apache httpd" as apache
+  artifact "access.log" as log
+  apache --> log : пишет
+}
+
+node "Сервер анализа (Windows / Linux)" as srv {
+  node "Python 3.11" as py {
+    component "uvicorn + FastAPI\n(api.main:app)" as api
+    component "lsdetector" as core
+    api --> core
+  }
+  database "lsdetector.sqlite3" as db
+  artifact "models/pretrained/*.joblib" as models
+  artifact "dns_cache.json" as cache
+  api --> db
+  core --> models
+  core --> cache
+}
+
+node "Рабочее место администратора" as pc {
+  component "Браузер" as browser
+}
+
+cloud "DNS" as dns
+
+log ..> api : загрузка журнала\nчерез веб / API
+browser --> api : HTTP :8000
+core --> dns : UDP/TCP 53
+@enduml
